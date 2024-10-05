@@ -1,1 +1,5 @@
-from pyoai_realtime.event_handler import EventHandler
+from pyoai_realtime.event_handler import RealtimeEventHandler
+
+__all__ = [
+    "RealtimeEventHandler",
+]

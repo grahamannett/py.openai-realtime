@@ -15,19 +15,6 @@ class RealtimeEventHandler:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(" f"\n\t{self.event_handlers=}, " f"\n\t{self.next_event_handlers=}\n)"
 
-    def clear_event_handlers(self) -> bool:
-        """
-        Clear all event handlers.
-
-        This method resets the `event_handlers` and `next_event_handlers` attributes
-        to empty default dictionaries with lists as the default factory.
-
-        Returns:
-            bool: Always returns True to indicate the handlers have been cleared.
-        """
-        self.event_handlers = defaultdict(list)
-        self.next_event_handlers = defaultdict(list)
-        return True
 
     def _handler_append(self, handler: dict, callback: Callable) -> Callable:
         handler.append(callback)
@@ -58,6 +45,21 @@ class RealtimeEventHandler:
         else:
             events.clear()
 
+        return True
+
+
+    def clear_event_handlers(self) -> bool:
+        """
+        Clear all event handlers.
+
+        This method resets the `event_handlers` and `next_event_handlers` attributes
+        to empty default dictionaries with lists as the default factory.
+
+        Returns:
+            bool: Always returns True to indicate the handlers have been cleared.
+        """
+        self.event_handlers = defaultdict(list)
+        self.next_event_handlers = defaultdict(list)
         return True
 
     def on(self, event_name: str, callback: Callable) -> Callable:
@@ -146,8 +148,12 @@ class RealtimeEventHandler:
 
         self.on_next(event_name, callback)
         try:
-            await asyncio.wait_for(event.wait(), timeout=timeout)
-            next_event = result.get("data")
+            async with asyncio.timeout(timeout):
+                await event.wait()
+                next_event = result.get("data")
+
+            # await asyncio.wait_for(event.wait(), timeout=timeout)
+            # next_event = result.get("data")
         except TimeoutError:
             next_event = None
         except Exception as err:
