@@ -262,3 +262,8 @@ pyrightconfig.json
 
 # add uv.lock back in once stable
 uv.lock
+
+# ignore the audio file for time being
+tests/fixtures/**
+
+mise.toml

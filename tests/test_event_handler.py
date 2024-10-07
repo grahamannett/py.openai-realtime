@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from pyoai_realtime.event_handler import RealtimeEventHandler
+from pyoai_realtime.realtime_events import RealtimeEvent, Registry
 
 
 @pytest.fixture
@@ -117,3 +118,31 @@ class TestRealtimeEventHandler:
             event_handler.off("test_event", lambda x: x)
         assert "Could not turn off" in str(exc_info.value)
 
+
+@pytest.mark.asyncio
+class TestRealtimeEvent:
+    async def test_realtime_event_init(self):
+        """Test registering event listeners and dispatching events."""
+
+        convo_item_create_data = {
+            "event_id": "event_345",
+            # "type": "conversation.item.create",
+            "type": "conversation.item.create",
+            "previous_item_id": None,
+            "item": {
+                "id": "msg_001",
+                "type": "message",
+                "status": "completed",
+                "role": "user",
+                "content": [{"type": "input_text", "text": "Hello, how are you?"}],
+            },
+        }
+
+        data = convo_item_create_data
+        event1 = Registry.factory(data)
+
+        assert event1.item["id"] == "msg_001"
+
+        data["item"]["id"] = "msg_002"
+        event2 = Registry[data](**data)
+        assert event1.item["id"] == "msg_001"

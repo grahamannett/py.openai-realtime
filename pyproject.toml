@@ -4,11 +4,22 @@
     description = "Add your description here"
     readme = "README.md"
     requires-python = ">=3.12"
-    dependencies = []
+    dependencies = [
+        "pytest-asyncio>=0.24.0",
+        "pytest>=8.3.3",
+        "websockets>=13.1",
+    ]
 
 [build-system]
     requires = ["hatchling"]
     build-backend = "hatchling.build"
 
+[tool.uv.sources]
+    pyoai-realtime = { workspace = true }
+
 [project.scripts]
     packaged-app = "pyoai_realtime:main"
+    test = "pytest:main"
+
+[tool.ruff]
+    line-length = 120
