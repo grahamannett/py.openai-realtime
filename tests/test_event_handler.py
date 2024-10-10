@@ -3,6 +3,7 @@ import asyncio
 import pytest
 
 from pyoai_realtime.event_handler import RealtimeEventHandler
+from pyoai_realtime.realtime_conversation import RealtimeConversation
 from pyoai_realtime.realtime_events import RealtimeEvent, Registry
 
 
@@ -146,3 +147,10 @@ class TestRealtimeEvent:
         data["item"]["id"] = "msg_002"
         event2 = Registry[data](**data)
         assert event1.item["id"] == "msg_001"
+
+
+@pytest.mark.asyncio
+class TestRealtimeConversation:
+    async def test_realtime_conversation(self):
+        """Test registering event listeners and dispatching events."""
+        conversation = RealtimeConversation()

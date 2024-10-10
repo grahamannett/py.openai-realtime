@@ -7,6 +7,7 @@ class RealtimeEventHandler:
     # should allow awaitable as well
     event_handlers: dict[str, list[Callable]]
     next_event_handlers: dict[str, list[Callable]]
+    background_tasks: dict[str, asyncio.Task] = {}
 
     def __init__(self) -> None:
         """Initialize the event handler with empty dictionaries for event handlers."""
@@ -14,7 +15,6 @@ class RealtimeEventHandler:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(" f"\n\t{self.event_handlers=}, " f"\n\t{self.next_event_handlers=}\n)"
-
 
     def _handler_append(self, handler: dict, callback: Callable) -> Callable:
         handler.append(callback)
@@ -46,7 +46,6 @@ class RealtimeEventHandler:
             events.clear()
 
         return True
-
 
     def clear_event_handlers(self) -> bool:
         """
@@ -171,15 +170,17 @@ class RealtimeEventHandler:
         Returns:
             bool: True if successful.
         """
+
         async def _handle(fns: list[Callable]):
             for fn in fns:
                 _ = await fn(event) if asyncio.iscoroutinefunction(fn) else fn(event)
 
-        if handlers := self.event_handlers[event_name]:
+        # use get to avoid adding key to defaultdict
+        if handlers := self.event_handlers.get(event_name):
             await _handle(handlers)
             handlers.clear()
 
-        if next_handlers := self.next_event_handlers[event_name]:
+        if next_handlers := self.next_event_handlers.get(event_name):
             await _handle(next_handlers)
             next_handlers.clear()
 
