@@ -31,9 +31,16 @@ class EventFunctionsMixin:
     event_processor: dict[str, callable]
     default_frequency: int
 
-    def _attach_events(self):
-        self.event_processor[conversation_events.Created.type] = self._conversation_item_created
-        self.event_processor[conversation_events.Truncated.type] = self._converstaion_item_truncated
+    def _register_events(self, skip_event: list[str] = [], replace_event: dict[str, callable] = {}):
+        event_mapping = [
+            (conversation_events.Created.type, self._conversation_item_created),
+            (conversation_events.Truncated.type, self._converstaion_item_truncated),
+            (conversation_events.Deleted.type, self._conversation_item_deleted),
+        ]
+
+        for event_type, handler in event_mapping:
+            if event_type not in skip_event:
+                self.event_processor[event_type] = handler
 
     def _conversation_item_created(self, event: conversation_events.Created):
         new_item = event.item

@@ -267,3 +267,5 @@ uv.lock
 tests/fixtures/**
 
 mise.toml
+
+.vscode/**

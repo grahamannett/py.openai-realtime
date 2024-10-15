@@ -4,13 +4,12 @@ from typing import Any, Dict, Optional
 
 import websockets
 import websockets.protocol
-from websockets.asyncio.client import ClientConnection
-from websockets.asyncio.client import connect
+from websockets.asyncio.client import ClientConnection, connect
 
+from pyoai_realtime import log
 from pyoai_realtime.constants import DEBUG, DEFAULT_MODEL, DEFAULT_URL
 from pyoai_realtime.event_handler import RealtimeEventHandler
 from pyoai_realtime.utils import generate_id
-from pyoai_realtime import log
 
 
 class RealtimeAPI(RealtimeEventHandler):
@@ -52,7 +51,23 @@ class RealtimeAPI(RealtimeEventHandler):
             raise RuntimeError("Already connected")
         return True
 
-    async def connect(self, model: str = DEFAULT_MODEL) -> bool:
+    async def _receive_loop(self):
+        async def _err_done(msg: str):
+            self.log(msg)
+            await self.disconnect()
+            await self.dispatch("close", {"error": True})
+
+        try:
+            async for message in self.ws:
+                json_data = json.loads(message)
+                await self.receive(json_data.get("type"), json_data)
+
+        except websockets.ConnectionClosed as err:
+            await _err_done(f"Connection closed: {err}")
+        except Exception as err:
+            await _err_done(f"Error: {err}")
+
+    async def connect(self, model: str = DEFAULT_MODEL, done_cb: callable = None) -> bool:
         """
         Connect to the API with the specified model.
 
@@ -70,52 +85,42 @@ class RealtimeAPI(RealtimeEventHandler):
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
 
-        def _done_cb(task):
-            print("==> in _done_callback")
-
-        async def _keep_alive(stop_coro):
-            await stop_coro
-
         try:
             self.ws = await connect(url, additional_headers=headers)
-            recv_task = asyncio.create_task(self._receive_loop())
-            recv_task.add_done_callback(_done_cb)
-            # stop_task = asyncio.create_task(_keep_alive(asyncio.get_running_loop().create_future()))
+            recv_task = asyncio.create_task(self._receive_loop(), name="receive_loop")
+
+            if done_cb:
+                recv_task.add_done_callback(done_cb)
 
             self.background_tasks["receive_loop"] = recv_task
-            # self.background_tasks["stop"] = stop_task
-
             return True
         except Exception as err:
             raise err
 
-    async def _receive_loop(self):
-        async def _err_done():
-            await self.disconnect()
-            await self.dispatch("close", {"error": True})
-
-        try:
-            # while True:
-            async for message in self.ws:
-                json_data = json.loads(message)
-                await self.receive(json_data.get("type"), json_data)
-
-        except websockets.ConnectionClosed as err:
-            self.log(f"Connection closed: {err}")
-            await _err_done()
-        except Exception as err:
-            self.log(f"Error: {err}")
-            await _err_done()
-
     async def disconnect(self) -> bool:
         """Close the WebSocket connection if it exists."""
+        if recv_task := self.background_tasks.get("receive_loop"):
+            recv_task.cancel()
+
         if self.ws:
             await self.ws.close()
             self.ws = None
-            self.log(f'Disconnected from "{self.url}"')
+            self.log(f"Disconnected from '{self.url}'")
         return True
 
     async def receive(self, event_name: str, event: Dict[str, Any]) -> bool:
+        """
+        Asynchronously handles the reception of an event.
+
+        Args:
+            event_name (str): The name of the event received.
+            event (Dict[str, Any]): The event data.
+
+        Returns:
+            bool: Always returns True.
+
+        Logs the received event, dispatches it to specific and wildcard handlers.
+        """
         self.log("RECEIVED:", event_name, event)
         await self.dispatch(f"server.{event_name}", event)
         await self.dispatch("server.*", event)

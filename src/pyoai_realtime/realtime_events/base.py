@@ -1,7 +1,7 @@
 """Base module for realtime events."""
 
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 _TYPE_FIELD = "type"
 
@@ -49,31 +49,3 @@ class RealtimeEventRegistry:
 
     def __getitem__(self, event: dict | str) -> RealtimeEvent:
         return RealtimeEventRegistry._registry[event[_TYPE_FIELD]]
-
-
-def event_dto(cls) -> type[RealtimeEvent]:
-    """helper so i dont have to keep typing out @dataclass(kw_only=True)"""
-    return dataclass(cls, kw_only=True)
-
-
-# -----
-# Server Events
-
-
-@dataclass
-class Error(RealtimeEvent):
-    """
-    Represents an error event in the PyOAI Realtime system.
-
-    https://platform.openai.com/docs/api-reference/realtime-server-events/error
-
-    This class extends RealtimeEvent to provide specific error information
-    when something goes wrong during the realtime communication.
-
-    Attributes:
-        error (dict): A dictionary containing error details.
-        type (str): The type of the event, always set to "error" for this class.
-    """
-
-    error: dict = field(default=None)
-    type: str = "error"
