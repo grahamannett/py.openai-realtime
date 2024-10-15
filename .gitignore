@@ -269,3 +269,6 @@ tests/fixtures/**
 mise.toml
 
 .vscode/**
+
+# ignore personal notes
+_notes.md
