@@ -1,0 +1,38 @@
+# # mise config files are hierarchical. mise will find all of the config files
+# # in all parent directories and merge them together.
+# # You might have a structure like:
+#
+# * ~/work/project/mise.toml   # a config file for a specific work project
+# * ~/work/mise.toml           # a config file for projects related to work
+# * ~/.config/mise/config.toml # the global config file
+# * /etc/mise/config.toml      # the system config file
+#
+# # This setup allows you to define default versions and configuration across
+# # all projects but override them for specific projects.
+#
+# # set arbitrary env vars to be used whenever in this project or subprojects
+[env]
+    #
+    _.file = ".secrets.toml"
+
+    _.python.venv.path = "{{ config_root }}/.venv"
+    _.python.venv.create = true
+
+
+    # ----
+    # ---- tasks ----
+    # ----
+
+[tasks."clean:relay"]
+    run = "cd examples/relay-server && which trash openai-realtime-console"
+
+[tasks."relay:server"]
+    # watchmedo auto-restart  --recursive --signal SIGTERM python relay.py
+    run = "uv run --directory examples/relay-server relay.py"
+
+[tasks."relay:frontend"]
+    env = { BROWSER = "None" }
+    run = "uv run --directory examples/relay-server/openai-realtime-console -- npm run start"
+
+[tasks."relay:dev"]
+    depends = ["relay:frontend", "relay:relay"]

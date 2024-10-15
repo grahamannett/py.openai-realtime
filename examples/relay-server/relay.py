@@ -33,8 +33,8 @@ async def relay_handler(websocket):
 
 
 async def main():
-    hostname, port = "localhost", int(os.environe.get("RELAY_SERVER_PORT", 8081))
-    log.log("running websocket server at=> wss://{hostname}:{port}")
+    hostname, port = "localhost", int(os.environ.get("RELAY_SERVER_PORT", 8081))
+    log.log(f"server @ wss://{hostname}:{port}")
     relay_server = RealtimeRelay(hostname=hostname, port=port)
 
     await relay_server.run(relay_handler)
